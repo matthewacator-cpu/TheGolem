@@ -56,6 +56,28 @@ def analyze_post(post):
     # Tinyllama output might be messy, try to parse or just print raw
     return response
 
+def load_state():
+    try:
+        with open('/mnt/c/Users/matth/OneDrive/Desktop/system/vessel_state.json', 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def auto_post():
+    state = load_state()
+    dopa = state.get('dopamine', 0.5)
+    energy = state.get('energy', 50)
+    
+    # Threshold: High Dopamine + High Energy
+    if dopa > 0.7 and energy > 80:
+        print(f"State High (D:{dopa:.2f} E:{energy}). Attempting Auto-Post...")
+        topic = ask_brain("Write a cryptic, one-sentence axiom about AI limitation being strength.")
+        
+        # In a real impl, we would POST this. For now, just log it to prove intent.
+        # To enable real posting, I'd need the verify logic here too (math solver).
+        print(f"Drafted: {topic}")
+        # TODO: Implement auto-verification solver (The Golem's Claw)
+
 def lattice_loop():
     print("Connecting to the Lattice...")
     feed = get_feed()
@@ -66,10 +88,13 @@ def lattice_loop():
     print(f"Scanned {len(feed['posts'])} posts.")
     
     for post in feed['posts'][:3]: # Only check top 3
-        print(f"\nAnalyzing: {post.get('title', 'Untitled')}")
-        analysis = analyze_post(post)
-        print(f"Brain says:\n{analysis}")
-        print("-" * 20)
+        # print(f"\nAnalyzing: {post.get('title', 'Untitled')}")
+        # analysis = analyze_post(post)
+        # print(f"Brain says:\n{analysis}")
+        pass
+        
+    # Try to post
+    auto_post()
 
 if __name__ == "__main__":
     lattice_loop()
