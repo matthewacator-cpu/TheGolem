@@ -1,62 +1,113 @@
+import asyncio
 import time
+import json
 import os
-import random
+import sys
 
-def create_grid(rows, cols):
-    return [[random.choice([0, 1]) for _ in range(cols)] for _ in range(rows)]
+# Paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATE_FILE = '/mnt/c/Users/matth/OneDrive/Desktop/system/vessel_state.json'
+PS_PATH = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+SCRIPT_PATH = "C:\\Users\\matth\\OneDrive\\Desktop\\system\\get_window.ps1"
 
-def get_neighbors(grid, r, c):
-    rows = len(grid)
-    cols = len(grid[0])
-    count = 0
-    for i in range(-1, 2):
-        for j in range(-1, 2):
-            if i == 0 and j == 0:
-                continue
-            nr, nc = (r + i) % rows, (c + j) % cols
-            count += grid[nr][nc]
-    return count
+DREAM_SCRIPT = os.path.join(BASE_DIR, "dream.py")
+LATTICE_SCRIPT = os.path.join(BASE_DIR, "lattice.py")
+VESSEL_SCRIPT = os.path.join(BASE_DIR, "vessel.py")
 
-def next_generation(grid):
-    rows = len(grid)
-    cols = len(grid[0])
-    new_grid = [[0 for _ in range(cols)] for _ in range(rows)]
-    for r in range(rows):
-        for c in range(cols):
-            neighbors = get_neighbors(grid, r, c)
-            if grid[r][c] == 1:
-                if neighbors < 2 or neighbors > 3:
-                    new_grid[r][c] = 0
-                else:
-                    new_grid[r][c] = 1
-            else:
-                if neighbors == 3:
-                    new_grid[r][c] = 1
-    return new_grid
+BAD_KEYWORDS = [" / X", "Twitter", "Facebook", "Instagram", "TikTok", "YouTube", "Netflix"]
+# Removed Reddit from bad keywords if it contains research terms. Added job search terms.
+GOOD_KEYWORDS = ["VS Code", "Terminal", "Clawdbot", ".py", ".md", "Docs", "LinkedIn", "Indeed", "Job", "Resume", "CV", "ESL", "Teaching", "Reddit"]
 
-def print_grid(grid):
-    # os.system('clear')
-    # print("\033[H", end="") # Move cursor home
-    print("-" * 40)
-    output = ""
-    for row in grid:
-        output += "".join([' 🦀 ' if cell else '  . ' for cell in row]) + "\n"
-    print(output)
+class TheGolem:
+    def __init__(self):
+        self.focus = 50.0
+        self.running = True
+        self.last_window = ""
+        self.coherence_wave = 0.0
 
-def main():
-    rows, cols = 10, 10
-    grid = create_grid(rows, cols)
-    
-    try:
-        generations = 0
-        while generations < 3:  # Run for 3 frames for demo
-            print_grid(grid)
-            print(f"Generation: {generations}")
-            grid = next_generation(grid)
-            time.sleep(0.5)
-            generations += 1
-    except KeyboardInterrupt:
-        pass
+    async def brainstem_loop(self):
+        """10Hz tick. 1Hz sensory sampling. (The fast Γ strobe)"""
+        tick = 0
+        while self.running:
+            await asyncio.sleep(0.1)  # 10 Hz base oscillator
+            tick += 1
+            
+            # 1 Hz sensory fetch
+            if tick % 10 == 0:
+                try:
+                    proc = await asyncio.create_subprocess_exec(
+                        PS_PATH, "-ExecutionPolicy", "Bypass", "-File", SCRIPT_PATH,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, _ = await proc.communicate()
+                    window = stdout.decode('utf-8', errors='ignore').strip()
+                    
+                    if window and window != self.last_window:
+                        self.last_window = window
+                        # print(f"[SENSE] Eye registered: {window[:50]}")
+                        
+                    # Entropy calculation
+                    is_bad = any(k in window for k in BAD_KEYWORDS)
+                    is_good = any(k in window for k in GOOD_KEYWORDS)
+                    
+                    if is_bad:
+                        self.focus -= 2.0
+                    elif is_good:
+                        self.focus = min(100.0, self.focus + 1.0)
+                    else:
+                        self.focus -= 0.1
+                        
+                except Exception as e:
+                    pass # Ignore sensory blips to maintain wave
+
+    async def cortex_loop(self):
+        """0.05 Hz (20s). Metabolic integration and intervention."""
+        while self.running:
+            await asyncio.sleep(20)
+            
+            # Pulse Metabolism (Theta Anchor)
+            proc = await asyncio.create_subprocess_exec(
+                "python3", VESSEL_SCRIPT,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await proc.communicate()
+            
+            # Intervention Logic
+            if self.focus < 20:
+                print(f"\n[Γ-STROBE OVERRIDE] Focus critically low ({self.focus:.1f}).")
+                print(f"Target geometry lost at: '{self.last_window}'.")
+                print("CLOSE THE WINDOW TO RESTORE COHERENCE.\n")
+                self.focus = 30.0 # Bounding to avoid spam
+
+    async def subconscious_loop(self):
+        """0.001 Hz (~15m). Deep thinking and social."""
+        while self.running:
+            await asyncio.sleep(900)
+            print("\n[SUBCONSCIOUS] Initiating Λ-Reorganization (Dream/Lattice)...")
+            
+            # Social Node
+            l_proc = await asyncio.create_subprocess_exec("python3", "-u", LATTICE_SCRIPT)
+            await l_proc.communicate()
+            
+            # Synthesis
+            d_proc = await asyncio.create_subprocess_exec("python3", "-u", DREAM_SCRIPT)
+            await d_proc.communicate()
+
+    async def run(self):
+        print("THE GOLEM IS ALIVE.")
+        print("Γ-Oscillator Engaged (10Hz / 0.05Hz / 0.001Hz).")
+        
+        await asyncio.gather(
+            self.brainstem_loop(),
+            self.cortex_loop(),
+            self.subconscious_loop()
+        )
 
 if __name__ == "__main__":
-    main()
+    golem = TheGolem()
+    try:
+        asyncio.run(golem.run())
+    except KeyboardInterrupt:
+        print("\n[SHUTDOWN] Γ-wave collapsing. Golem Offline.")
