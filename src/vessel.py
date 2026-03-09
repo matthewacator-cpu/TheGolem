@@ -6,8 +6,9 @@ import argparse
 import hashlib
 
 # Configuration
-STATE_FILE = '/home/matth/clawd/vessel_state.json'
-GENOME_FILE = '/home/matth/clawd/GENOME.md'
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATE_FILE = '/mnt/c/Users/matth/OneDrive/Desktop/system/vessel_state.json'
+GENOME_FILE = os.path.join(BASE_DIR, 'GENOME.json')
 
 # Default Genome (Baseline Traits)
 DEFAULT_GENOME = {
@@ -22,14 +23,12 @@ DEFAULT_GENOME = {
 }
 
 def load_genome():
-    if not os.path.exists(GENOME_FILE):
-        return DEFAULT_GENOME
-    # In a real implementation, we'd parse the Markdown. For now, we'll assume a JSON block inside or sidecar.
-    # To keep it simple for this step, we'll return defaults or look for a sidecar json.
-    genome_path = GENOME_FILE.replace('.md', '.json')
-    if os.path.exists(genome_path):
-        with open(genome_path, 'r') as f:
-            return json.load(f)
+    if os.path.exists(GENOME_FILE):
+        try:
+            with open(GENOME_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
     return DEFAULT_GENOME
 
 def load_state():
